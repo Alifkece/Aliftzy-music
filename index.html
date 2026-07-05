@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Frekuensi — Cari, putar, unduh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="bg-layer" aria-hidden="true">
+  <div class="blob blob-a"></div>
+  <div class="blob blob-b"></div>
+  <div class="blob blob-c"></div>
+  <canvas id="particles"></canvas>
+  <div class="noise"></div>
+</div>
+
+<header class="topbar">
+  <div class="brand" data-action="go-home">
+    <span class="dial-mark">
+      <svg viewBox="0 0 40 40" width="28" height="28">
+        <circle cx="20" cy="20" r="18" class="dial-ring-outer"/>
+        <circle cx="20" cy="20" r="12" class="dial-ring-inner"/>
+        <line x1="20" y1="20" x2="20" y2="6" class="dial-needle"/>
+      </svg>
+    </span>
+    <span class="brand-name">Frekuensi</span>
+  </div>
+
+  <form id="topSearchForm" class="topbar-search" autocomplete="off">
+    <svg class="icon-search" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="topSearchInput" type="text" placeholder="Cari judul, artis, atau penyanyi..." />
+  </form>
+
+  <nav class="topbar-nav">
+    <button class="nav-link is-active" data-view="home">Beranda</button>
+    <button class="nav-link" data-view="search">Pencarian</button>
+    <button class="icon-btn" id="queueToggleBtn" title="Antrean" aria-label="Antrean">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </nav>
+</header>
+
+<main id="app">
+
+  <!-- HOME VIEW -->
+  <section id="view-home" class="view is-active">
+    <section class="hero">
+      <p class="eyebrow">radio pribadi, di kantong lo</p>
+      <h1 class="hero-title">Tangkap<br/>frekuensinya.</h1>
+      <p class="hero-sub">Cari lagu dari SoundCloud, temukan liriknya, dan bawa pulang dalam MP3 — tanpa buka aplikasi lain.</p>
+
+      <form id="heroSearchForm" class="hero-search" autocomplete="off">
+        <svg class="icon-search" width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="heroSearchInput" type="text" placeholder="ketik judul lagu atau nama artis…" />
+        <button type="submit">Putar</button>
+      </form>
+
+      <div class="hero-dial" aria-hidden="true">
+        <div class="dial-rings">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="dial-eq">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+    </section>
+
+    <section class="rail-section">
+      <div class="rail-head">
+        <h2>Coba cari ini</h2>
+        <p>Kanal pilihan buat mancing telinga lo</p>
+      </div>
+      <div class="rail" id="trendingRail"></div>
+    </section>
+
+    <section class="rail-section" id="recentSection" hidden>
+      <div class="rail-head">
+        <h2>Baru dicari</h2>
+        <p>Lanjut dari terakhir kali</p>
+      </div>
+      <div class="chip-row" id="recentChips"></div>
+    </section>
+  </section>
+
+  <!-- SEARCH VIEW -->
+  <section id="view-search" class="view">
+    <div class="search-head">
+      <h2 id="searchHeading">Hasil pencarian</h2>
+      <span id="searchMeta" class="search-meta"></span>
+    </div>
+    <div id="searchSkeleton" class="track-grid" hidden>
+      <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
+      <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
+    </div>
+    <div id="searchEmpty" class="empty-state" hidden>
+      <div class="empty-dial"></div>
+      <p>Belum nemu sinyalnya. Coba kata kunci lain.</p>
+    </div>
+    <div id="trackGrid" class="track-grid"></div>
+  </section>
+
+</main>
+
+<!-- TRACK CARD TEMPLATE -->
+<template id="trackCardTpl">
+  <article class="track-card">
+    <div class="track-cover">
+      <img loading="lazy" />
+      <button class="cover-play" data-role="play" aria-label="Putar">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+    <div class="track-info">
+      <h3 class="track-title" data-role="title"></h3>
+      <p class="track-artist" data-role="artist"></p>
+    </div>
+    <div class="track-meta">
+      <span class="track-duration" data-role="duration"></span>
+      <div class="track-actions">
+        <button class="icon-btn sm" data-role="favorite" title="Favorit" aria-label="Favorit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.4 4a5 5 0 0 1 6.6 2 5 5 0 0 1 6.6-2c3.4.5 4.9 4 3.4 7.7C19.5 16.4 12 21 12 21z" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <button class="icon-btn sm" data-role="info" title="Info lagu" aria-label="Info lagu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5M12 8v.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn sm" data-role="download" title="Unduh MP3" aria-label="Unduh MP3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </article>
+</template>
+
+<!-- SONG DETAILS MODAL -->
+<div id="detailsModal" class="modal-scrim" hidden>
+  <div class="modal-panel details-panel">
+    <button class="modal-close" data-close>&times;</button>
+    <div class="details-body">
+      <img id="detailsArt" class="details-art" alt="" />
+      <div class="details-text">
+        <h3 id="detailsTitle">—</h3>
+        <p id="detailsArtist" class="muted">—</p>
+        <dl id="detailsFacts" class="fact-list"></dl>
+        <div id="detailsLyricsWrap" hidden>
+          <h4>Lirik</h4>
+          <p id="detailsLyrics" class="lyrics-text"></p>
+        </div>
+        <p id="detailsStatus" class="muted small"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DOWNLOAD PROGRESS MODAL -->
+<div id="downloadModal" class="modal-scrim" hidden>
+  <div class="modal-panel download-panel">
+    <button class="modal-close" data-close>&times;</button>
+    <div id="dlIdle">
+      <div class="dl-ring">
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" class="dl-ring-track"/>
+          <circle cx="50" cy="50" r="44" class="dl-ring-fill" id="dlRingFill"/>
+        </svg>
+        <span id="dlPercentLabel">0%</span>
+      </div>
+      <h3 id="dlTitle">Menyiapkan unduhan…</h3>
+      <div class="dl-stats">
+        <span id="dlSpeed">— KB/s</span>
+        <span id="dlEta">ETA —</span>
+      </div>
+    </div>
+    <div id="dlSuccess" hidden>
+      <div class="success-burst"><svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h3>Selesai! Berkasnya udah kepotong ke MP3.</h3>
+      <button class="btn-primary" id="dlSaveBtn">Simpan MP3</button>
+    </div>
+    <div id="dlError" hidden>
+      <p class="error-text" id="dlErrorText">Gagal mengunduh.</p>
+    </div>
+  </div>
+</div>
+
+<!-- QUEUE DRAWER -->
+<aside id="queueDrawer" class="drawer" hidden>
+  <div class="drawer-head">
+    <h3>Antrean</h3>
+    <button class="modal-close" data-close-queue>&times;</button>
+  </div>
+  <ol id="queueList" class="queue-list"></ol>
+</aside>
+
+<!-- TOASTS -->
+<div id="toastRoot" class="toast-root" aria-live="polite"></div>
+
+<!-- FULLSCREEN PLAYER -->
+<div id="fullPlayer" class="full-player" hidden>
+  <button class="full-collapse" id="collapsePlayerBtn" aria-label="Tutup">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <div class="full-bg" id="fullBg"></div>
+  <div class="full-content">
+    <div class="full-dial">
+      <div class="dial-bezel">
+        <img id="fullArt" alt="" />
+      </div>
+      <div class="dial-ticks"></div>
+    </div>
+    <h2 id="fullTitle">—</h2>
+    <p id="fullArtist" class="muted">—</p>
+    <div class="full-eq" id="fullEq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+    <div class="progress-row">
+      <span id="fullCurrent" class="mono">0:00</span>
+      <input id="fullSeek" type="range" min="0" max="100" value="0" />
+      <span id="fullDuration" class="mono">0:00</span>
+    </div>
+
+    <div class="full-controls">
+      <button class="ctrl-btn" id="fullShuffleBtn" title="Acak"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 4h4l9 16h3M4 20h4l2.5-4.4M17 4h3l-3.2 5.6M14 4l1.2 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="ctrl-btn" id="fullPrevBtn" title="Sebelumnya"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM20 6v12L9 12z"/></svg></button>
+      <button class="ctrl-btn big" id="fullPlayBtn" title="Putar/Pause"><svg id="fullPlayIcon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="ctrl-btn" id="fullNextBtn" title="Selanjutnya"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18 6h-2v12h2zM4 6v12l11-6z"/></svg></button>
+      <button class="ctrl-btn" id="fullRepeatBtn" title="Ulangi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+
+    <div class="full-secondary">
+      <label class="speed-select">
+        <span>Kecepatan</span>
+        <select id="speedSelect">
+          <option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+          <option value="2">2x</option>
+        </select>
+      </label>
+      <div class="volume-row">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 9v6h4l5 5V4L8 9H4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <input id="volumeSlider" type="range" min="0" max="100" value="80" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MINI / FLOATING PLAYER -->
+<div id="miniPlayer" class="mini-player" hidden>
+  <div class="mini-progress-track"><div class="mini-progress-fill" id="miniProgressFill"></div></div>
+  <div class="mini-inner">
+    <div class="mini-art-wrap" id="miniExpandBtn">
+      <img id="miniArt" alt="" />
+      <div class="mini-eq" id="miniEq"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="mini-text" id="miniExpandBtn2">
+      <p id="miniTitle" class="mini-title">Belum ada yang diputar</p>
+      <p id="miniArtist" class="mini-artist">Cari lagu buat mulai</p>
+    </div>
+    <div class="mini-controls">
+      <button class="icon-btn" id="miniPrevBtn" aria-label="Sebelumnya"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM20 6v12L9 12z"/></svg></button>
+      <button class="icon-btn big" id="miniPlayBtn" aria-label="Putar/Pause"><svg id="miniPlayIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="icon-btn" id="miniNextBtn" aria-label="Selanjutnya"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18 6h-2v12h2zM4 6v12l11-6z"/></svg></button>
+      <button class="icon-btn favorite-mini" id="miniFavBtn" aria-label="Favorit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-10-9.3C.5 8 2 4.5 5.4 4a5 5 0 0 1 6.6 2 5 5 0 0 1 6.6-2c3.4.5 4.9 4 3.4 7.7C19.5 16.4 12 21 12 21z" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<audio id="audioEl" preload="none"></audio>
+
+<script src="script.js"></script>
+</body>
+</html>
