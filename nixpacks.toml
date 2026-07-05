@@ -1,0 +1,20 @@
+# Fallback build config if the Railway service builder is set to Nixpacks
+# instead of the Dockerfile. Not needed when using Dockerfile builder
+# (railway.json defaults to DOCKERFILE), but kept so the project "just works"
+# regardless of which builder Railway picks for the service.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "ffmpeg", "python3", "curl"]
+
+[phases.install]
+cmds = [
+  "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp",
+  "chmod a+rx /usr/local/bin/yt-dlp",
+  "npm install --omit=dev"
+]
+
+[phases.build]
+cmds = ["mkdir -p tmp_audio"]
+
+[start]
+cmd = "node server.js"
